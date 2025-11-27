@@ -25,12 +25,25 @@ local activeToasts = {}
 local toastPool = {}
 
 local function ReanchorToasts()
+    local growth = ZenToastDB.growthDirection or "DOWN"
+    local point, relativePoint, offsetMult
+
+    if growth == "DOWN" then
+        point = "TOP"
+        relativePoint = "BOTTOM"
+        offsetMult = -1
+    else
+        point = "BOTTOM"
+        relativePoint = "TOP"
+        offsetMult = 1
+    end
+
     for i, toast in ipairs(activeToasts) do
         toast:ClearAllPoints()
         if i == 1 then
-            toast:SetPoint("TOP", ZenToast.Anchor, "BOTTOM", 0, -ZenToast.SPACING)
+            toast:SetPoint(point, ZenToast.Anchor, relativePoint, 0, ZenToast.SPACING * offsetMult)
         else
-            toast:SetPoint("TOP", activeToasts[i-1], "BOTTOM", 0, -ZenToast.SPACING)
+            toast:SetPoint(point, activeToasts[i-1], relativePoint, 0, ZenToast.SPACING * offsetMult)
         end
     end
 end
@@ -87,6 +100,10 @@ local function CreateToastFrame()
     Toast.SubText:SetPoint("TOPLEFT", Toast.Text, "BOTTOMLEFT", 0, -2)
     Toast.SubText:SetJustifyH("LEFT")
 
+    -- Apply Scale
+    local scale = ZenToastDB.scale or 1.0
+    Toast:SetScale(scale)
+
     -- Click Handler
     Toast:RegisterForClicks("LeftButtonUp", "RightButtonUp")
     Toast:SetScript("OnClick", function(self, button)
@@ -110,22 +127,24 @@ local function CreateToastFrame()
         if self.animState == "HIDDEN" then return end
 
         self.animTime = self.animTime + elapsed
+        local maxAlpha = ZenToastDB.opacity or 1.0
+        local duration = ZenToastDB.toastDuration or 4.0
 
         if self.animState == "FADEIN" then
-            local alpha = self.animTime / ZenToast.FADE_DURATION
-            if alpha >= 1 then
-                alpha = 1
+            local alpha = (self.animTime / ZenToast.FADE_DURATION) * maxAlpha
+            if alpha >= maxAlpha then
+                alpha = maxAlpha
                 self.animState = "HOLD"
                 self.animTime = 0
             end
             self:SetAlpha(alpha)
         elseif self.animState == "HOLD" then
-            if self.animTime >= ZenToast.TOAST_DURATION then
+            if self.animTime >= duration then
                 self.animState = "FADEOUT"
                 self.animTime = 0
             end
         elseif self.animState == "FADEOUT" then
-            local alpha = 1 - (self.animTime / ZenToast.FADE_DURATION)
+            local alpha = maxAlpha - ((self.animTime / ZenToast.FADE_DURATION) * maxAlpha)
             if alpha <= 0 then
                 RecycleToast(self)
             else
@@ -159,7 +178,9 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
     end
 
     -- 3. Play Sound
-    PlaySound("igQuestLogOpen")
+    if ZenToastDB.playSound then
+        PlaySound("igQuestLogOpen")
+    end
 
     -- 4. Fetch Data
     local classColor = "ffffffff"
@@ -203,6 +224,10 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
     -- 5. Setup Toast
     local toast = GetToast()
     toast.name = name
+
+    -- Update scale in case it changed
+    local scale = ZenToastDB.scale or 1.0
+    toast:SetScale(scale)
 
     -- Extract class color for border
     local borderR, borderG, borderB = 0.5, 0.5, 0.5 -- Default gray
@@ -354,7 +379,8 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
 
     -- 6. Stacking Logic
     table.insert(activeToasts, 1, toast)
-    if #activeToasts > ZenToast.MAX_TOASTS then
+    local maxToasts = ZenToastDB.maxToasts or 3
+    if #activeToasts > maxToasts then
         RecycleToast(activeToasts[#activeToasts])
     end
     ReanchorToasts()

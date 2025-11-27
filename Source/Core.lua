@@ -2,14 +2,9 @@
 ZenToast = {}
 
 -- Configuration & Constants --
-ZenToast.TOAST_DURATION = 4.0
-ZenToast.FADE_DURATION = 0.5
 ZenToast.FRAME_WIDTH = 250
 ZenToast.FRAME_HEIGHT = 50
-ZenToast.MAX_TOASTS = 3
-ZenToast.POS_POINT = "TOP"
-ZenToast.POS_X = 0
-ZenToast.POS_Y = -150
+ZenToast.FADE_DURATION = 0.5
 ZenToast.SPACING = 10
 
 -- Class Icon Coordinates (Standard WoW Coords)
@@ -70,6 +65,13 @@ ZenToast.defaults = {
     anchorPoint = "TOP",
     anchorX = 0,
     anchorY = -150,
+    -- General Customization
+    scale = 1.0,
+    opacity = 1.0,
+    toastDuration = 4.0,
+    maxToasts = 3,
+    playSound = true,
+    growthDirection = "DOWN",
 }
 
 -- AFK Status Tracking
