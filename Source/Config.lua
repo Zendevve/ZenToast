@@ -1,17 +1,22 @@
 local _G = _G
 
 function ZenToast.InitConfig()
-    -- Setup Options Panel
-    local panel = CreateFrame("Frame", "ZenToastOptions", UIParent)
-    panel.name = "ZenToast"
-    InterfaceOptions_AddCategory(panel)
+    -- Main Panel
+    local mainPanel = CreateFrame("Frame", "ZenToastOptions", UIParent)
+    mainPanel.name = "ZenToast"
+    InterfaceOptions_AddCategory(mainPanel)
 
-    local title = panel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
+    local title = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
     title:SetPoint("TOPLEFT", 16, -16)
     title:SetText("ZenToast Options")
 
-    local function CreateCheck(label, key, yOffset)
-        local cb = CreateFrame("CheckButton", "ZenToastCheck"..key, panel, "InterfaceOptionsCheckButtonTemplate")
+    local desc = mainPanel:CreateFontString(nil, "ARTWORK", "GameFontHighlightSmall")
+    desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
+    desc:SetText("Configure your toast notification settings")
+
+    -- Helper Functions
+    local function CreateCheck(label, key, yOffset, parent)
+        local cb = CreateFrame("CheckButton", "ZenToastCheck"..key, parent, "InterfaceOptionsCheckButtonTemplate")
         cb:SetPoint("TOPLEFT", 16, yOffset)
         _G[cb:GetName().."Text"]:SetText(label)
         cb:SetChecked(ZenToastDB[key])
@@ -21,35 +26,66 @@ function ZenToast.InitConfig()
         return cb
     end
 
-    local function CreateHeader(text, yOffset)
-        local header = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+    local function CreateHeader(text, yOffset, parent)
+        local header = parent:CreateFontString(nil, "ARTWORK", "GameFontNormalLarge")
         header:SetPoint("TOPLEFT", 16, yOffset)
         header:SetText(text)
-        header:SetTextColor(1, 0.82, 0) -- Gold color
+        header:SetTextColor(1, 0.82, 0)
         return header
     end
 
-    -- Suppression Options
-    CreateHeader("Suppression Options", -50)
-    CreateCheck("Hide in Raid", "hideInRaid", -75)
-    CreateCheck("Hide in Battleground", "hideInBG", -100)
-    CreateCheck("Hide in Arena", "hideInArena", -125)
+    -- Tab 1: Display (Child Panel)
+    local displayPanel = CreateFrame("Frame", "ZenToastOptionsDisplay", UIParent)
+    displayPanel.name = "Display"
+    displayPanel.parent = "ZenToast"
+    InterfaceOptions_AddCategory(displayPanel)
 
-    -- Display Options
-    CreateHeader("Display Options", -160)
-    CreateCheck("Show Icon", "showIcon", -185)
-    CreateCheck("Show Faction Badge", "showFactionBadge", -210)
-    CreateCheck("Show Level", "showLevel", -235)
-    CreateCheck("Show Class", "showClass", -260)
-    CreateCheck("Show Location", "showLocation", -285)
+    CreateHeader("Online Display Options", -20, displayPanel)
+    CreateCheck("Show Icon", "showIcon", -50, displayPanel)
+    CreateCheck("Show Faction Badge", "showFactionBadge", -75, displayPanel)
+    CreateCheck("Show Level", "showLevel", -100, displayPanel)
+    CreateCheck("Show Class", "showClass", -125, displayPanel)
+    CreateCheck("Show Location", "showLocation", -150, displayPanel)
 
-    -- Advanced Options
-    CreateHeader("Advanced Options", -320)
-    CreateCheck("Use Custom Icons", "useCustomIcons", -345)
+    -- Tab 2: Offline (Child Panel)
+    local offlinePanel = CreateFrame("Frame", "ZenToastOptionsOffline", UIParent)
+    offlinePanel.name = "Offline"
+    offlinePanel.parent = "ZenToast"
+    InterfaceOptions_AddCategory(offlinePanel)
 
-    -- Unlock Anchor Checkbox
-    local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", -370)
-    unlockCb:SetChecked(false) -- Always start locked
+    CreateHeader("Offline Display Options", -20, offlinePanel)
+    CreateCheck("Show Icon (Offline)", "showIconOffline", -50, offlinePanel)
+    CreateCheck("Show Faction Badge (Offline)", "showFactionBadgeOffline", -75, offlinePanel)
+    CreateCheck("Show Level (Offline)", "showLevelOffline", -100, offlinePanel)
+    CreateCheck("Show Class (Offline)", "showClassOffline", -125, offlinePanel)
+    CreateCheck("Show Location (Offline)", "showLocationOffline", -150, offlinePanel)
+
+    -- Tab 3: Advanced (Child Panel)
+    local advancedPanel = CreateFrame("Frame", "ZenToastOptionsAdvanced", UIParent)
+    advancedPanel.name = "Advanced"
+    advancedPanel.parent = "ZenToast"
+    InterfaceOptions_AddCategory(advancedPanel)
+
+    CreateHeader("Suppression", -20, advancedPanel)
+    CreateCheck("Hide in Raid", "hideInRaid", -50, advancedPanel)
+    CreateCheck("Hide in Battleground", "hideInBG", -75, advancedPanel)
+    CreateCheck("Hide in Arena", "hideInArena", -100, advancedPanel)
+
+    CreateHeader("Other Options", -135, advancedPanel)
+    CreateCheck("Use Custom Icons", "useCustomIcons", -165, advancedPanel)
+
+    local afkCb = CreateCheck("Enable AFK Notifications", "enableAFK", -190, advancedPanel)
+    afkCb:SetScript("OnClick", function(self)
+        ZenToastDB.enableAFK = self:GetChecked()
+        if ZenToastDB.enableAFK then
+            ZenToast.StartAFKPolling()
+        else
+            ZenToast.StopAFKPolling()
+        end
+    end)
+
+    local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", -215, advancedPanel)
+    unlockCb:SetChecked(false)
     unlockCb:SetScript("OnClick", function(self)
         if self:GetChecked() then
             ZenToast.Anchor:Show()
@@ -64,6 +100,11 @@ function ZenToast.InitConfig()
     if ZenToastDB.anchorPoint then
         ZenToast.Anchor:ClearAllPoints()
         ZenToast.Anchor:SetPoint(ZenToastDB.anchorPoint, UIParent, ZenToastDB.anchorPoint, ZenToastDB.anchorX, ZenToastDB.anchorY)
+    end
+
+    -- Start AFK polling if enabled
+    if ZenToastDB.enableAFK then
+        ZenToast.StartAFKPolling()
     end
 end
 

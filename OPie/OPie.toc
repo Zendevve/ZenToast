@@ -1,0 +1,21 @@
+## Interface: 30300
+## Title: OPie
+## Notes: Group abilities into rings that appear when you trigger a binding.
+## Author: foxlit
+## SavedVariables: OneRing_Config, OPie_Locale
+## OptionalDeps: ButtonFacade
+## X-Version-Name-Wrath: Foxtrot 9
+## X-Update-FeedURL: http://www.go-hero.net/opie/rss/beta
+## X-Website: http://www.go-hero.net/opie/
+## X-API-Docs: http://www.go-hero.net/opie/api
+EventLib.lua
+OneRingLib.lua
+OneRingIndication.lua
+OneRingLocale.lua
+OPieConfig.lua
+OPieBindings.lua
+Meta\StanceBar.lua
+Meta\RingKeeper.lua
+Meta\RingKeeperConfig.lua
+Rings\Common.lua
+Rings\RKRings.lua
