@@ -21,13 +21,34 @@ function ZenToast.InitConfig()
         return cb
     end
 
-    CreateCheck("Hide in Raid", "hideInRaid", -50)
-    CreateCheck("Hide in Battleground", "hideInBG", -80)
-    CreateCheck("Hide in Arena", "hideInArena", -110)
-    CreateCheck("Use Custom Icons", "useCustomIcons", -140)
+    local function CreateHeader(text, yOffset)
+        local header = panel:CreateFontString(nil, "ARTWORK", "GameFontNormal")
+        header:SetPoint("TOPLEFT", 16, yOffset)
+        header:SetText(text)
+        header:SetTextColor(1, 0.82, 0) -- Gold color
+        return header
+    end
+
+    -- Suppression Options
+    CreateHeader("Suppression Options", -50)
+    CreateCheck("Hide in Raid", "hideInRaid", -75)
+    CreateCheck("Hide in Battleground", "hideInBG", -100)
+    CreateCheck("Hide in Arena", "hideInArena", -125)
+
+    -- Display Options
+    CreateHeader("Display Options", -160)
+    CreateCheck("Show Icon", "showIcon", -185)
+    CreateCheck("Show Faction Badge", "showFactionBadge", -210)
+    CreateCheck("Show Level", "showLevel", -235)
+    CreateCheck("Show Class", "showClass", -260)
+    CreateCheck("Show Location", "showLocation", -285)
+
+    -- Advanced Options
+    CreateHeader("Advanced Options", -320)
+    CreateCheck("Use Custom Icons", "useCustomIcons", -345)
 
     -- Unlock Anchor Checkbox
-    local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", -150)
+    local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", -370)
     unlockCb:SetChecked(false) -- Always start locked
     unlockCb:SetScript("OnClick", function(self)
         if self:GetChecked() then

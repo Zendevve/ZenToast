@@ -213,8 +213,42 @@ function ZenToast.ShowToast(name, isOnline, debugClass)
     end
 
     if isOnline then
-        toast.Text:SetText("|c" .. classColor .. name .. "|r")
-        toast.SubText:SetText(string.format("Level %s %s\n%s", level, class, area))
+        toast.Text:SetText("|c" .. classColor .. name .. "|r has come online")
+
+        -- Build SubText dynamically based on display settings
+        local subParts = {}
+        if ZenToastDB.showLevel then
+            table.insert(subParts, "Level " .. level)
+        end
+        if ZenToastDB.showClass then
+            table.insert(subParts, class)
+        end
+        if ZenToastDB.showLocation then
+            table.insert(subParts, area)
+        end
+
+        local subText = ""
+        if #subParts > 0 then
+            -- First line: Level and Class (if both shown)
+            local firstLine = {}
+            if ZenToastDB.showLevel then table.insert(firstLine, "Level " .. level) end
+            if ZenToastDB.showClass then table.insert(firstLine, class) end
+
+            if #firstLine > 0 then
+                subText = table.concat(firstLine, " ")
+            end
+
+            -- Second line: Location
+            if ZenToastDB.showLocation then
+                if subText ~= "" then
+                    subText = subText .. "\n" .. area
+                else
+                    subText = area
+                end
+            end
+        end
+
+        toast.SubText:SetText(subText)
         toast:SetBackdropBorderColor(borderR, borderG, borderB, 0.8)
     else
         toast.Text:SetText("|c" .. classColor .. name .. "|r")
@@ -223,43 +257,52 @@ function ZenToast.ShowToast(name, isOnline, debugClass)
     end
 
     -- Icon Logic
-    if ZenToastDB.useCustomIcons then
-        -- Custom Icon Path: Interface\AddOns\ZenToast\Icons\CLASS.tga
-        local customPath = "Interface\\AddOns\\ZenToast\\Icons\\" .. class .. ".tga"
-        toast.Icon:SetTexture(customPath)
-        toast.Icon:SetTexCoord(0, 1, 0, 1) -- Full image
-    else
-        -- Default Blizzard Icons
-        local iconTexture = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
-        local coords = ZenToast.CLASS_ICON_TCOORDS[class]
-
-        if coords then
-            toast.Icon:SetTexture(iconTexture)
-            toast.Icon:SetTexCoord(unpack(coords))
+    if ZenToastDB.showIcon then
+        if ZenToastDB.useCustomIcons then
+            -- Custom Icon Path: Interface\AddOns\ZenToast\Icons\CLASS.tga
+            local customPath = "Interface\\AddOns\\ZenToast\\Icons\\" .. class .. ".tga"
+            toast.Icon:SetTexture(customPath)
+            toast.Icon:SetTexCoord(0, 1, 0, 1) -- Full image
         else
-            -- Fallback: Use a generic icon
-            toast.Icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
-            toast.Icon:SetTexCoord(0, 1, 0, 1)
+            -- Default Blizzard Icons
+            local iconTexture = "Interface\\Glues\\CharacterCreate\\UI-CharacterCreate-Classes"
+            local coords = ZenToast.CLASS_ICON_TCOORDS[class]
+
+            if coords then
+                toast.Icon:SetTexture(iconTexture)
+                toast.Icon:SetTexCoord(unpack(coords))
+            else
+                -- Fallback: Use a generic icon
+                toast.Icon:SetTexture("Interface\\Icons\\INV_Misc_QuestionMark")
+                toast.Icon:SetTexCoord(0, 1, 0, 1)
+            end
         end
+        toast.Icon:Show()
+    else
+        toast.Icon:Hide()
     end
 
     -- Faction Icon Logic (Class Based)
-    local faction = CLASS_FACTION[class]
-    print("ZenToast Debug: Name=" .. name .. ", Class=" .. class .. ", Faction=" .. tostring(faction))
+    if ZenToastDB.showFactionBadge then
+        local faction = CLASS_FACTION[class]
+        print("ZenToast Debug: Name=" .. name .. ", Class=" .. class .. ", Faction=" .. tostring(faction))
 
-    if faction == "Alliance" then
-        toast.FactionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Alliance")
-        toast.FactionIcon:SetTexCoord(0, 1, 0, 1)
-        toast.FactionIcon:Show()
-        print("ZenToast Debug: Showing Alliance icon")
-    elseif faction == "Horde" then
-        toast.FactionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Horde")
-        toast.FactionIcon:SetTexCoord(0, 1, 0, 1)
-        toast.FactionIcon:Show()
-        print("ZenToast Debug: Showing Horde icon")
+        if faction == "Alliance" then
+            toast.FactionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Alliance")
+            toast.FactionIcon:SetTexCoord(0, 1, 0, 1)
+            toast.FactionIcon:Show()
+            print("ZenToast Debug: Showing Alliance icon")
+        elseif faction == "Horde" then
+            toast.FactionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Horde")
+            toast.FactionIcon:SetTexCoord(0, 1, 0, 1)
+            toast.FactionIcon:Show()
+            print("ZenToast Debug: Showing Horde icon")
+        else
+            toast.FactionIcon:Hide()
+            print("ZenToast Debug: Hiding faction icon (neutral class)")
+        end
     else
         toast.FactionIcon:Hide()
-        print("ZenToast Debug: Hiding faction icon (neutral class)")
     end
 
     toast:Show()
