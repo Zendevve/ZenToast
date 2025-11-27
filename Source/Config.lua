@@ -14,6 +14,20 @@ function ZenToast.InitConfig()
     desc:SetPoint("TOPLEFT", title, "BOTTOMLEFT", 0, -10)
     desc:SetText("Configure your toast notification settings")
 
+    -- Scroll Frame
+    local scrollFrame = CreateFrame("ScrollFrame", "ZenToastOptionsScrollFrame", mainPanel, "UIPanelScrollFrameTemplate")
+    scrollFrame:SetPoint("TOPLEFT", 10, -60)
+    scrollFrame:SetPoint("BOTTOMRIGHT", -25, 10)
+
+    local scrollChild = CreateFrame("Frame", "ZenToastOptionsScrollChild", scrollFrame)
+    scrollChild:SetWidth(600) -- Default width to ensure visibility
+    scrollChild:SetHeight(500) -- Initial height, adjusted below
+    scrollFrame:SetScrollChild(scrollChild)
+
+    scrollFrame:SetScript("OnShow", function(self)
+        scrollChild:SetWidth(self:GetWidth() - 20) -- Adjust for scrollbar
+    end)
+
     -- Helper Functions
     local function CreateCheck(label, key, yOffset, parent)
         local cb = CreateFrame("CheckButton", "ZenToastCheck"..key, parent, "InterfaceOptionsCheckButtonTemplate")
@@ -29,7 +43,7 @@ function ZenToast.InitConfig()
     local function CreateSlider(label, key, minVal, maxVal, step, yOffset, parent)
         local slider = CreateFrame("Slider", "ZenToastSlider"..key, parent, "OptionsSliderTemplate")
         slider:SetPoint("TOPLEFT", 16, yOffset)
-        slider:SetWidth(180)
+        slider:SetWidth(160) -- Reduced width to fit better
         slider:SetMinMaxValues(minVal, maxVal)
         slider:SetValueStep(step)
         slider:SetValue(ZenToastDB[key])
@@ -91,21 +105,21 @@ function ZenToast.InitConfig()
     CreateCheck("Show Location (Offline)", "showLocationOffline", -150, offlinePanel)
 
     -- Main Panel Content (General Settings)
-    local y = -60
-    CreateHeader("Appearance & Behavior", y, mainPanel)
+    local y = -10
+    CreateHeader("Appearance & Behavior", y, scrollChild)
     y = y - 40
-    CreateSlider("Scale", "scale", 0.5, 2.0, 0.1, y, mainPanel)
-    CreateSlider("Opacity", "opacity", 0.1, 1.0, 0.1, y, mainPanel):SetPoint("TOPLEFT", 220, y)
+    CreateSlider("Scale", "scale", 0.5, 2.0, 0.1, y, scrollChild)
+    CreateSlider("Opacity", "opacity", 0.1, 1.0, 0.1, y, scrollChild):SetPoint("TOPLEFT", 200, y)
     y = y - 50
-    CreateSlider("Duration (sec)", "toastDuration", 1, 10, 1, y, mainPanel)
-    CreateSlider("Max Toasts", "maxToasts", 1, 10, 1, y, mainPanel):SetPoint("TOPLEFT", 220, y)
+    CreateSlider("Duration (sec)", "toastDuration", 1, 10, 1, y, scrollChild)
+    CreateSlider("Max Toasts", "maxToasts", 1, 10, 1, y, scrollChild):SetPoint("TOPLEFT", 200, y)
     y = y - 50
 
-    CreateCheck("Play Sound", "playSound", y, mainPanel)
+    CreateCheck("Play Sound", "playSound", y, scrollChild)
 
     -- Custom logic for Stack Upwards (string mapping)
-    local stackCb = CreateFrame("CheckButton", "ZenToastCheckStack", mainPanel, "InterfaceOptionsCheckButtonTemplate")
-    stackCb:SetPoint("TOPLEFT", 220, y)
+    local stackCb = CreateFrame("CheckButton", "ZenToastCheckStack", scrollChild, "InterfaceOptionsCheckButtonTemplate")
+    stackCb:SetPoint("TOPLEFT", 200, y)
     _G[stackCb:GetName().."Text"]:SetText("Stack Upwards")
     stackCb:SetChecked(ZenToastDB.growthDirection == "UP")
     stackCb:SetScript("OnClick", function(self)
@@ -114,21 +128,21 @@ function ZenToast.InitConfig()
 
     y = y - 40
 
-    CreateHeader("Suppression", y, mainPanel)
+    CreateHeader("Suppression", y, scrollChild)
     y = y - 30
-    CreateCheck("Hide in Raid", "hideInRaid", y, mainPanel)
+    CreateCheck("Hide in Raid", "hideInRaid", y, scrollChild)
     y = y - 25
-    CreateCheck("Hide in Battleground", "hideInBG", y, mainPanel)
+    CreateCheck("Hide in Battleground", "hideInBG", y, scrollChild)
     y = y - 25
-    CreateCheck("Hide in Arena", "hideInArena", y, mainPanel)
+    CreateCheck("Hide in Arena", "hideInArena", y, scrollChild)
     y = y - 40
 
-    CreateHeader("Other Options", y, mainPanel)
+    CreateHeader("Other Options", y, scrollChild)
     y = y - 30
-    CreateCheck("Use Custom Icons", "useCustomIcons", y, mainPanel)
+    CreateCheck("Use Custom Icons", "useCustomIcons", y, scrollChild)
     y = y - 25
 
-    local afkCb = CreateCheck("Enable AFK Notifications", "enableAFK", y, mainPanel)
+    local afkCb = CreateCheck("Enable AFK Notifications", "enableAFK", y, scrollChild)
     afkCb:SetScript("OnClick", function(self)
         ZenToastDB.enableAFK = self:GetChecked()
         if ZenToastDB.enableAFK then
@@ -139,7 +153,7 @@ function ZenToast.InitConfig()
     end)
     y = y - 25
 
-    local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", y, mainPanel)
+    local unlockCb = CreateCheck("Unlock Anchor", "unlockAnchor", y, scrollChild)
     unlockCb:SetChecked(false)
     unlockCb:SetScript("OnClick", function(self)
         if self:GetChecked() then
@@ -150,6 +164,10 @@ function ZenToast.InitConfig()
             ZenToast.Anchor:EnableMouse(false)
         end
     end)
+    y = y - 25
+
+    -- Set ScrollChild height
+    scrollChild:SetHeight(math.abs(y) + 20)
 
     -- Restore saved position
     if ZenToastDB.anchorPoint then
