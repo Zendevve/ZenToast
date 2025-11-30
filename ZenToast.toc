@@ -2,7 +2,7 @@
 ## Title: ZenToast
 ## Notes: Minimalist toast notifications for friends coming online/offline.
 ## Author: Zendevve
-## Version: 1.1
+## Version: 1.2
 ## SavedVariables: ZenToastDB
 
 Source\Core.lua

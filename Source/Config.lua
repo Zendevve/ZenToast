@@ -133,6 +133,9 @@ function ZenToast.InitConfig()
         ZenToastDB.growthDirection = self:GetChecked() and "UP" or "DOWN"
     end)
 
+    y = y - 25
+
+    CreateCheck("Hide Chat Messages", "hideChatMessages", y, scrollChild)
     y = y - 40
 
     -- Suppression
@@ -143,6 +146,8 @@ function ZenToast.InitConfig()
     CreateCheck("Hide in Battleground", "hideInBG", y, scrollChild)
     y = y - 25
     CreateCheck("Hide in Arena", "hideInArena", y, scrollChild)
+    y = y - 25
+    CreateCheck("Hide Guild Toasts", "hideGuildToasts", y, scrollChild)
     y = y - 40
 
     -- Other
@@ -161,6 +166,9 @@ function ZenToast.InitConfig()
             ZenToast.StopAFKPolling()
         end
     end)
+    y = y - 25
+
+    CreateCheck("Debug Messages", "debugMessages", y, scrollChild)
     y = y - 25
 
     -- Unlock Anchor (Not persisted by default, but state is managed)

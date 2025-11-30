@@ -6,7 +6,8 @@ local IsInInstance = IsInInstance
 local RAID_CLASS_COLORS = RAID_CLASS_COLORS
 
 -- Faction mapping by class (uppercase)
-local CLASS_FACTION = {
+-- Standard server faction mapping
+local CLASS_FACTION_STANDARD = {
     SHAMAN = "Horde",
     PALADIN = "Alliance",
     -- Neutral classes
@@ -19,6 +20,36 @@ local CLASS_FACTION = {
     DRUID = "Both",
     DEATHKNIGHT = "Both"
 }
+
+-- Custom realms where all classes are both factions
+local CLASS_FACTION_CUSTOM = {
+    WARRIOR = "Both",
+    HUNTER = "Both",
+    ROGUE = "Both",
+    PRIEST = "Both",
+    MAGE = "Both",
+    WARLOCK = "Both",
+    DRUID = "Both",
+    DEATHKNIGHT = "Both",
+    SHAMAN = "Both",
+    PALADIN = "Both"
+}
+
+-- Custom realm list
+local CUSTOM_REALMS = {
+    ["Kezan"] = true,
+    ["Gurubashi"] = true
+}
+
+-- Helper function to get the correct faction mapping based on realm
+local function GetFactionMapping()
+    local realmName = GetRealmName()
+    if CUSTOM_REALMS[realmName] then
+        return CLASS_FACTION_CUSTOM
+    else
+        return CLASS_FACTION_STANDARD
+    end
+end
 
 -- Toast Pooling & Stacking
 local activeToasts = {}
@@ -164,8 +195,11 @@ local function GetToast()
     return toast
 end
 
-function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
+function ZenToast.ShowToast(name, isOnline, debugClass, statusType, toastType)
+    -- toastType: "friend" (default) or "guild"
     -- statusType: nil (normal online/offline), "afk" (went AFK), "away" (returned from AFK)
+    toastType = toastType or "friend"
+
     -- 1. Combat Suppression
     if InCombatLockdown() then return end
 
@@ -194,7 +228,32 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
         area = "Test Zone"
         local color = RAID_CLASS_COLORS[class]
         if color then classColor = color.colorStr end
+elseif toastType == "guild" then
+    -- For guild members, use GetGuildRosterInfo
+    for i = 1, GetNumGuildMembers() do
+        local gName, gRank, gRankIndex, gLevel, gClass, gZone, gNote, gOffline = GetGuildRosterInfo(i)
+        if gName and gName == name then
+                level = gLevel or "??"
+                class = gClass or "Unknown"
+                area = gZone or "Unknown"
+
+                if gClass then
+                    local englishClass = ZenToast.GetEnglishClass(gClass)
+                    if englishClass and englishClass ~= "Unknown" then
+                        class = englishClass
+                        local color = RAID_CLASS_COLORS[class]
+                        if color then
+                            classColor = color.colorStr
+                        end
+                    else
+                        class = gClass
+                    end
+                end
+                break
+            end
+        end
     else
+        -- For friends, use GetFriendInfo
         for i = 1, GetNumFriends() do
             local fName, fLevel, fClass, fArea, fConnected = GetFriendInfo(i)
             if fName and fName == name then
@@ -229,9 +288,12 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
     local scale = ZenToastDB.scale or 1.0
     toast:SetScale(scale)
 
-    -- Extract class color for border
+    -- Extract class color for border, but use guild color if this is a guild toast
     local borderR, borderG, borderB = 0.5, 0.5, 0.5 -- Default gray
-    if class ~= "Unknown" then
+    if toastType == "guild" then
+        -- Guild toasts use green
+        borderR, borderG, borderB = 0, 1, 0
+    elseif class ~= "Unknown" then
         local color = RAID_CLASS_COLORS[class]
         if color then
             borderR, borderG, borderB = color.r, color.g, color.b
@@ -252,9 +314,17 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
     elseif statusType == "away" then
         toast.Text:SetText("|c" .. classColor .. name .. "|r is no longer AFK")
     elseif isOnline then
-        toast.Text:SetText("|c" .. classColor .. name .. "|r has come online")
+        if toastType == "guild" then
+            toast.Text:SetText("|cff00ff00[Guild]|r |c" .. classColor .. name .. "|r online")
+        else
+            toast.Text:SetText("|c" .. classColor .. name .. "|r has come online")
+        end
     else
-        toast.Text:SetText("|c" .. classColor .. name .. "|r went offline")
+        if toastType == "guild" then
+            toast.Text:SetText("|cff00ff00[Guild]|r |c" .. classColor .. name .. "|r offline")
+        else
+            toast.Text:SetText("|c" .. classColor .. name .. "|r went offline")
+        end
     end
 
     -- Build SubText dynamically
@@ -351,22 +421,23 @@ function ZenToast.ShowToast(name, isOnline, debugClass, statusType)
 
     -- Faction Icon Logic (use appropriate setting)
     if showFactionSetting then
+        local CLASS_FACTION = GetFactionMapping()
         local faction = CLASS_FACTION[class]
-        print("ZenToast Debug: Name=" .. name .. ", Class=" .. class .. ", Faction=" .. tostring(faction))
+        ZenToast.DebugPrint("Name=" .. name .. ", Class=" .. class .. ", Faction=" .. tostring(faction))
 
         if faction == "Alliance" then
             toast.FactionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Alliance")
             toast.FactionIcon:SetTexCoord(0, 1, 0, 1)
             toast.FactionIcon:Show()
-            print("ZenToast Debug: Showing Alliance icon")
+            ZenToast.DebugPrint("Showing Alliance icon")
         elseif faction == "Horde" then
             toast.FactionIcon:SetTexture("Interface\\TargetingFrame\\UI-PVP-Horde")
             toast.FactionIcon:SetTexCoord(0, 1, 0, 1)
             toast.FactionIcon:Show()
-            print("ZenToast Debug: Showing Horde icon")
+            ZenToast.DebugPrint("Showing Horde icon")
         else
             toast.FactionIcon:Hide()
-            print("ZenToast Debug: Hiding faction icon (neutral class)")
+            ZenToast.DebugPrint("Hiding faction icon (neutral class)")
         end
     else
         toast.FactionIcon:Hide()

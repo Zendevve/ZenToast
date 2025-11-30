@@ -41,12 +41,21 @@ function ZenToast.GetEnglishClass(localizedClass)
     return "Unknown"
 end
 
+-- Debug Print Helper Function
+function ZenToast.DebugPrint(message)
+    if ZenToastDB and ZenToastDB.debugMessages then
+        print("|cff00ff00ZenToast Debug:|r " .. tostring(message))
+    end
+end
+
 -- Defaults
 ZenToast.defaults = {
     hideInRaid = false,
     hideInBG = false,
     hideInArena = false,
+    hideGuildToasts = false,
     useCustomIcons = false,
+    hideChatMessages = true,
     -- Online Display Options
     showIcon = true,
     showFactionBadge = true,
@@ -72,6 +81,7 @@ ZenToast.defaults = {
     maxToasts = 3,
     playSound = true,
     growthDirection = "DOWN",
+    debugMessages = false,
 }
 
 -- AFK Status Tracking
@@ -81,6 +91,7 @@ ZenToast.afkPollTimer = nil
 -- Event Frame
 local EventFrame = CreateFrame("Frame")
 EventFrame:RegisterEvent("ADDON_LOADED")
+EventFrame:RegisterEvent("PLAYER_LOGIN")
 EventFrame:SetScript("OnEvent", function(self, event, arg1)
     if event == "ADDON_LOADED" and arg1 == "ZenToast" then
         if not ZenToastDB then ZenToastDB = {} end
@@ -88,49 +99,156 @@ EventFrame:SetScript("OnEvent", function(self, event, arg1)
         for k, v in pairs(ZenToast.defaults) do
             if ZenToastDB[k] == nil then ZenToastDB[k] = v end
         end
-        self:UnregisterEvent("ADDON_LOADED")
 
         -- Initialize Modules
         if ZenToast.InitConfig then ZenToast.InitConfig() end
         if ZenToast.InitBroadcast then ZenToast.InitBroadcast() end
+    elseif event == "PLAYER_LOGIN" then
+        -- Guild Toasts will require SetGuildRosterShowOffline(true) its an api limitation
+        if not ZenToastDB.hideGuildToasts then
+            SetGuildRosterShowOffline(true)
+        end
+        self:UnregisterEvent("PLAYER_LOGIN")
     end
 end)
 
 -- Chat Filter (Hide System Msg, Trigger Toast)
-local patternOnline = ERR_FRIEND_ONLINE_SS:gsub("%%s", "(.+)"):gsub("%[", "%%["):gsub("%]","%%]")
-local patternOffline = ERR_FRIEND_OFFLINE_S:gsub("%%s", "(.+)"):gsub("%[", "%%["):gsub("%]","%%]")
+-- Generic patterns that match both friend and guild messages
+local patternOnline = "(.+) has come online"
+local patternOffline = "(.+) has gone offline"
+
+-- Deduplication: WoW sometimes fires CHAT_MSG_SYSTEM twice for the same message
+-- Use a simple flag-based system to block the immediate duplicate
+local lastMessageHash = nil
+local function GetMessageHash(msg, name)
+    return msg .. ":" .. name
+end
+
+local function IsMessageDuplicate(msg, name)
+    local hash = GetMessageHash(msg, name)
+    if lastMessageHash == hash then
+        return true
+    end
+    lastMessageHash = hash
+    return false
+end
+
+function IsPlayerInGuild(playerName)
+    for i = 1, GetNumGuildMembers() do
+        local gName = GetGuildRosterInfo(i)
+        if gName and gName == playerName then
+            return true
+        end
+    end
+    return false
+end
+
+function IsPlayerInFriends(playerName)
+    for i = 1, GetNumFriends() do
+        local fName = GetFriendInfo(i)
+        if fName and fName == playerName then
+            return true
+        end
+    end
+    return false
+end
 
 local function ChatFilter(self, event, msg, ...)
     local name = msg:match(patternOnline)
     if name then
-        if ZenToast.ShowToast then
-            local success, err = pcall(ZenToast.ShowToast, name, true)
-            if not success then
-                print("ZenToast Error (Online): " .. tostring(err))
-            end
-        else
-            print("ZenToast Error: ShowToast is nil")
+        -- Extract only what's between the brackets [PlayerName] if present, otherwise use as-is
+        local bracketName = string.match(name, "%[(.-)%]")
+        if bracketName then
+            name = bracketName
         end
-        return true -- Block original message
+        ZenToast.DebugPrint("Online: " .. name)
+
+        -- Determine type: Friends take priority over guild
+        GuildRoster()
+        local inFriends = IsPlayerInFriends(name)
+        local inGuild = IsPlayerInGuild(name)
+
+        local toastType
+        if inFriends then
+            toastType = "friend"
+        elseif inGuild then
+            toastType = "guild"
+        else
+            toastType = "unknown"
+        end
+
+        ZenToast.DebugPrint("  In Friends: " .. tostring(inFriends) .. ", In Guild: " .. tostring(inGuild) .. ", Type: " .. toastType)
+
+        -- Skip guild-only toasts if hideGuildToasts is enabled
+        if toastType == "guild" and ZenToastDB.hideGuildToasts then
+            ZenToast.DebugPrint("  Guild-only toast suppressed by setting")
+            return ZenToastDB.hideChatMessages
+        end
+
+        if not IsMessageDuplicate(msg, name) then
+            if ZenToast.ShowToast then
+                local success, err = pcall(ZenToast.ShowToast, name, true, nil, nil, toastType)
+                if not success then
+                    print("ZenToast Error (Online): " .. tostring(err))
+                end
+            else
+                print("ZenToast Error: ShowToast is nil")
+            end
+        end
+        return ZenToastDB.hideChatMessages
     end
 
     name = msg:match(patternOffline)
     if name then
-        if ZenToast.ShowToast then
-            local success, err = pcall(ZenToast.ShowToast, name, false)
-            if not success then
-                print("ZenToast Error (Offline): " .. tostring(err))
-            end
-        else
-            print("ZenToast Error: ShowToast is nil")
+        -- Extract only what's between the brackets [PlayerName] if present, otherwise use as-is
+        local bracketName = string.match(name, "%[(.-)%]")
+        if bracketName then
+            name = bracketName
         end
-        return true -- Block original message
+        ZenToast.DebugPrint("Offline: " .. name)
+
+        -- Determine type: Friends take priority over guild
+        GuildRoster()
+        local inFriends = IsPlayerInFriends(name)
+        local inGuild = IsPlayerInGuild(name)
+
+        local toastType
+        if inFriends then
+            toastType = "friend"
+        elseif inGuild then
+            toastType = "guild"
+        else
+            toastType = "unknown"
+        end
+
+        ZenToast.DebugPrint("  In Friends: " .. tostring(inFriends) .. ", In Guild: " .. tostring(inGuild) .. ", Type: " .. toastType)
+
+        -- Skip guild-only toasts if hideGuildToasts is enabled
+        if toastType == "guild" and ZenToastDB.hideGuildToasts then
+            ZenToast.DebugPrint("  Guild-only toast suppressed by setting")
+            return ZenToastDB.hideChatMessages
+        end
+
+        if not IsMessageDuplicate(msg, name) then
+            if ZenToast.ShowToast then
+                local success, err = pcall(ZenToast.ShowToast, name, false, nil, nil, toastType)
+                if not success then
+                    print("ZenToast Error (Offline): " .. tostring(err))
+                end
+            else
+                print("ZenToast Error: ShowToast is nil")
+            end
+        end
+        return ZenToastDB.hideChatMessages
     end
 
     return false
 end
 
-ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", ChatFilter)
+if not ZenToast.chatFilterRegistered then
+    ChatFrame_AddMessageEventFilter("CHAT_MSG_SYSTEM", ChatFilter)
+    ZenToast.chatFilterRegistered = true
+end
 
 -- AFK Status Polling
 function ZenToast.CheckAFKStatus()
