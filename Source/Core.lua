@@ -56,6 +56,9 @@ ZenToast.defaults = {
     hideGuildToasts = false,
     useCustomIcons = false,
     hideChatMessages = true,
+    -- Enable/Disable Toasts
+    enableOnlineToasts = true,
+    enableOfflineToasts = true,
     -- Online Display Options
     showIcon = true,
     showFactionBadge = true,
@@ -185,6 +188,12 @@ local function ChatFilter(self, event, msg, ...)
             return ZenToastDB.hideChatMessages
         end
 
+        -- Skip all online toasts if enableOnlineToasts is disabled
+        if not ZenToastDB.enableOnlineToasts then
+            ZenToast.DebugPrint("  Online toasts disabled")
+            return ZenToastDB.hideChatMessages
+        end
+
         if not IsMessageDuplicate(msg, name) then
             if ZenToast.ShowToast then
                 local success, err = pcall(ZenToast.ShowToast, name, true, nil, nil, toastType)
@@ -226,6 +235,12 @@ local function ChatFilter(self, event, msg, ...)
         -- Skip guild-only toasts if hideGuildToasts is enabled
         if toastType == "guild" and ZenToastDB.hideGuildToasts then
             ZenToast.DebugPrint("  Guild-only toast suppressed by setting")
+            return ZenToastDB.hideChatMessages
+        end
+
+        -- Skip all offline toasts if enableOfflineToasts is disabled
+        if not ZenToastDB.enableOfflineToasts then
+            ZenToast.DebugPrint("  Offline toasts disabled")
             return ZenToastDB.hideChatMessages
         end
 

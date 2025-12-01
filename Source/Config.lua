@@ -197,12 +197,15 @@ function ZenToast.InitConfig()
     onlinePanel.parent = "ZenToast"
     InterfaceOptions_AddCategory(onlinePanel)
 
-    CreateHeader("Online Display Options", -20, onlinePanel)
-    CreateCheck("Show Icon", "showIcon", -50, onlinePanel)
-    CreateCheck("Show Faction Badge", "showFactionBadge", -75, onlinePanel)
-    CreateCheck("Show Level", "showLevel", -100, onlinePanel)
-    CreateCheck("Show Class", "showClass", -125, onlinePanel)
-    CreateCheck("Show Location", "showLocation", -150, onlinePanel)
+    CreateHeader("Online Toasts", -20, onlinePanel)
+    CreateCheck("Enable Online Toasts", "enableOnlineToasts", -50, onlinePanel)
+
+    CreateHeader("Online Display Options", -100, onlinePanel)
+    CreateCheck("Show Icon", "showIcon", -130, onlinePanel)
+    CreateCheck("Show Faction Badge", "showFactionBadge", -155, onlinePanel)
+    CreateCheck("Show Level", "showLevel", -180, onlinePanel)
+    CreateCheck("Show Class", "showClass", -205, onlinePanel)
+    CreateCheck("Show Location", "showLocation", -230, onlinePanel)
 
     -- =========================================================================
     -- 4. Offline Settings Tab
@@ -212,12 +215,15 @@ function ZenToast.InitConfig()
     offlinePanel.parent = "ZenToast"
     InterfaceOptions_AddCategory(offlinePanel)
 
-    CreateHeader("Offline Display Options", -20, offlinePanel)
-    CreateCheck("Show Icon (Offline)", "showIconOffline", -50, offlinePanel)
-    CreateCheck("Show Faction Badge (Offline)", "showFactionBadgeOffline", -75, offlinePanel)
-    CreateCheck("Show Level (Offline)", "showLevelOffline", -100, offlinePanel)
-    CreateCheck("Show Class (Offline)", "showClassOffline", -125, offlinePanel)
-    CreateCheck("Show Location (Offline)", "showLocationOffline", -150, offlinePanel)
+    CreateHeader("Offline Toasts", -20, offlinePanel)
+    CreateCheck("Enable Offline Toasts", "enableOfflineToasts", -50, offlinePanel)
+
+    CreateHeader("Offline Display Options", -100, offlinePanel)
+    CreateCheck("Show Icon (Offline)", "showIconOffline", -130, offlinePanel)
+    CreateCheck("Show Faction Badge (Offline)", "showFactionBadgeOffline", -155, offlinePanel)
+    CreateCheck("Show Level (Offline)", "showLevelOffline", -180, offlinePanel)
+    CreateCheck("Show Class (Offline)", "showClassOffline", -205, offlinePanel)
+    CreateCheck("Show Location (Offline)", "showLocationOffline", -230, offlinePanel)
 
     -- =========================================================================
     -- Initialization Logic
